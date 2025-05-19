@@ -80,8 +80,30 @@ void command(char* buffer) {
     }
     free(args);
 }
+
+void script_mode(char* filename) {
+    FILE* read_file;
+    char line[MAX_CMD_BUFFER];
+
+    read_file = fopen(filename, "r");
+
+    if (read_file == NULL) {
+        printf("Cannot open file: %s\n", filename);
+        return;
+    }
+
+    while (fgets(line, MAX_CMD_BUFFER, read_file) != NULL) {
+        line[strcspn(line, "\n")] = 0;
+        // printf("%s\n", line);
+        command(line);
+    }
+    fclose(read_file);
+}
 int main(int argc, char *argv[]) {
-    if {
+    if (argc == 2) {
+       script_mode(argv[1]);
+    }
+    else {
         printf("Starting IC Shell\n");
         while (1) {
             printf("icsh $ ");
