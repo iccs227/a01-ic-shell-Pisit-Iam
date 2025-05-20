@@ -22,6 +22,28 @@ int exit_status = 0;
 int bg_job = 0;
 int job_id = 0;
 
+void exec_com(char *command, char **args) {
+    pid = fork();
+    int status;
+    if (pid < 0) {
+        perror("Fork failed");
+        exit(errno);
+    }
+
+    if (!pid) {
+        int can_exec = execvp(args[0], args);
+
+        if (can_exec < 0) {
+            printf("bad command\n");
+        }
+        exit(errno);
+    }
+
+    if (pid) {
+        waitpid(pid, &status, WUNTRACED);
+        exit_status = WEXITSTATUS(status);
+    }
+}
 void command(char* buffer) {
     char **args = (char **)malloc(sizeof(char *) * MAX_CMD_BUFFER);
     char *command = (char *)malloc(sizeof(strlen(buffer) + 1));
