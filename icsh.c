@@ -22,6 +22,18 @@ int exit_status = 0;
 int bg_job = 0;
 int job_id = 0;
 
+void SIGINT_handler(int signum) {
+    if (pid > 0) {
+        kill(pid, SIGINT);
+    }
+}
+
+void SIGTSTP_handler(int signum) {
+    if (pid > 0) {
+       kill(pid, SIGTSTP);   
+    }
+}
+
 void exec_com(char *command, char **args) {
     pid = fork();
     int status;
@@ -122,6 +134,16 @@ void script_mode(char* filename) {
     fclose(read_file);
 }
 int main(int argc, char *argv[]) {
+    struct sigaction sa1, sa2;
+    sa1.sa_flags = 0;
+    sa1.sa_handler = SIGINT_handler;
+    sigemptyset(&sa1.sa_mask);
+    sigaction(SIGINT, &sa1, NULL);
+
+    sa2.sa_flags = 0;
+    sa2.sa_handler = SIGTSTP_handler;
+    sigemptyset(&sa2.sa_mask);
+    sigaction(SIGTSTP, &sa2, NULL);
     if (argc == 2) {
        script_mode(argv[1]);
     }
