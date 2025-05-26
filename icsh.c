@@ -22,6 +22,7 @@ int exit_status = 0;
 int bg_job = 0;
 int job_id = 0;
 
+
 void SIGINT_handler(int signum) {
     if (pid > 0) {
         kill(pid, SIGINT);
@@ -56,6 +57,62 @@ void exec_com(char *command, char **args) {
         exit_status = WEXITSTATUS(status);
     }
 }
+
+void redirect_output(char *command, char **args) {
+    char *output_file = strchr(command, '>');
+    char *input_file = strchr(command, '<');
+
+    if (output_file != NULL) { // '>'
+        char *command_end = output_file;
+        while (*command_end == ' ' || *command_end == '>') {
+            *command_end = '\0';
+            command_end++;
+        }
+        char *filename = strtok(command_end, " ");
+        int output_fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+        if (output_fd == -1) {
+            perror("Failed to open output file");
+            return;
+        }
+
+        int saved_stdout = dup(1);
+        if (dup2(output_fd, 1) == -1) {
+            perror("Failed to redirect output");
+            return;
+        }
+        exec_com(command, args);
+
+        dup2(saved_stdout, 1);
+        close(output_fd);
+    }
+    else if (input_file != NULL) { // '<'
+        char *command_end = input_file;
+        while (*command_end == ' ' || *command_end == '<') {
+            *command_end = '\0';
+            command_end++;
+        }
+        char *filename = strtok(command_end, " ");
+        int input_fd = open(filename, O_RDONLY);
+        if (input_fd == -1) {
+            perror("Failed to open input file");
+            return;
+        }
+
+        int saved_stdin = dup(0);
+        if (dup2(input_fd, 0) == -1) {
+            perror("Failed to redirect input");
+            return;
+        }
+        exec_com(command, args);
+
+        dup2(saved_stdin, 0);
+        close(input_fd);
+    } else {
+        // No redirection, execute the command as is
+        exec_com(command, args);
+    }
+}
+
 void command(char* buffer) {
     char **args = (char **)malloc(sizeof(char *) * MAX_CMD_BUFFER);
     char *command = (char *)malloc(sizeof(strlen(buffer) + 1));
