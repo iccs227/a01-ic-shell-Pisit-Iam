@@ -22,38 +22,7 @@ int exit_status = 0;
 int bg_job = 0;
 int job_id = 0;
 
-void add_new_job(char *command,char *state){
-    job* new_job = (job*) malloc(sizeof(job));
-    char *args[MAX_CMD_ARGS];
 
-    new_job->id = job_id + 1; // Increment the job ID
-    new_job->pid = pid;
-
-    size_t len = strlen(command);
-    new_job->command = (char*) malloc(sizeof(char) * len);
-    memcpy(new_job->command, command, len);
-
-    len = strlen(state);
-    new_job->state = (char*) malloc(sizeof(char) * len);
-    memcpy(new_job->state, state, len);
-
-    new_job->next = NULL;
-
-    // Insert the new job into the list in sorted order based on job id
-    if (head == NULL || new_job->id < head->id) {
-        new_job->next = head;
-        head = new_job;
-    } else {
-        job* current = head;
-        while (current->next != NULL && new_job->id > current->next->id) {
-            current = current->next;
-        }
-        new_job->next = current->next;
-        current->next = new_job;
-    }
-    printf("[%d] %d\n", new_job->id, new_job->pid);
-    job_id++; // Increment the global job_id
-}
 
 void SIGINT_handler(int signum) {
     if (pid > 0) {
@@ -64,40 +33,6 @@ void SIGINT_handler(int signum) {
 void SIGTSTP_handler(int signum) {
     if (pid > 0) {
        kill(pid, SIGTSTP);   
-    }
-}
-
-void SIGCHLD_handler(int signum) {
-    if (pid> 0) {
-//        kill(pid, SIGTSTP);
-        job* current = head;
-        job* prev = NULL;
-
-        while (current != NULL) {
-            int status;
-            pid_t result = waitpid(current->pid, &status, WNOHANG);
-
-            if (result == current->pid) {
-                // The background job has completed
-                printf("\n[%d] Done                    %s\n", current->id, current->command);
-
-                if (prev == NULL) {
-                    // This is the first job in the list
-                    head = current->next;
-                    job_id--;
-                } else {
-                    prev->next = current->next;
-                }
-
-                job* temp = current;
-                current = current->next;
-                free(temp);
-                break;
-            } else {
-                prev = current;
-                current = current->next;
-            }
-        }
     }
 }
 
@@ -232,106 +167,8 @@ void command(char* buffer) {
             printf("Missing exit command\n");
         }
     }
-    else if (!strncmp(buffer, "sleep", 5)) {
-        int i=0;
-        while(args[i] != NULL ){
-            if(!strcmp(args[i],"&") && i == 2){
-                bg_job = 1;
-                args[i] = NULL;
-                break;
-            }
-            i++;
-        }
-        exec_com(buffer, args);
-    }
-
-    else if (!strncmp(buffer, "jobs", 4)) {
-        job* current = head;
-        if(current == NULL){
-            printf("No running job right now\n");
-        }else{
-            while(current != NULL){
-                if (!strcmp(current->state,"r"))
-                {
-                    printf("[%d] Running                 %s\n",current->id,current->command);
-                }
-                else if (!strcmp(current->state,"s"))
-                {
-                    printf("[%d] Stopped                 %s\n",current->id,current->command);
-                }
-                
-                current = current->next;
-            }
-            if (current == NULL) {
-                strcpy(buffer, ""); // Reset last_command
-            }
-        }
-    }
-
-    else if (!strncmp(buffer, "fg", 2)) {
-
-        int job_id = atoi(&buffer[strlen(buffer)-1]);
-
-        job* current = head;
-        job* prev = NULL;
-
-        while (current != NULL) {
-            if (current->id == job_id) {
-                printf("%s\n", current->command); // Print the command
-                int status;
-                waitpid(current->pid, &status, 0); // Wait for the job to complete
-                exit_status = WEXITSTATUS(status);
-
-                if (prev == NULL) {
-                    // This is the first job in the list
-                    head = current->next;
-                    job_id--;
-                } else {
-                    prev->next = current->next;
-                }
-                free(current);
-                break;
-            } else {
-                prev = current;
-                current = current->next;
-            }
-        }
-    }
-
-    else if (!strncmp(buffer, "bg", 2)) {
-        int job_id = atoi(&buffer[strlen(buffer) - 1]);
-
-        job* current = head;
-
-        while (current != NULL) {
-            if (current->id == job_id && strcmp(current->state, "s") == 0) {
-                kill(current->pid, SIGCONT);
-
-                current->state = "r";
-
-                printf("[%d] %s &\n", current->id, current->command);
-
-                break;
-            }
-            current = current->next;
-        }
-    }
     else {
-        for (i = 0; args[i] != NULL; i++) {
-            if (strcmp(args[i], "<") == 0 || strcmp(args[i], ">") == 0 || strcmp(args[i], ">>") == 0) {
-                  redirect = 1;
-                  break;
-                  }
-            args[count++] = args[i];
-        }
-        args[count] = NULL;
-
-        if (redirect) {
-            redirect_output(buffer, args);
-        }
-        else {
-            exec_com(buffer, args);
-        }
+        printf("bad command\n);")
     }
     free(args);
 }
