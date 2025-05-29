@@ -22,38 +22,7 @@ int exit_status = 0;
 int bg_job = 0;
 int job_id = 0;
 
-void add_new_job(char *command,char *state){
-    job* new_job = (job*) malloc(sizeof(job));
-    char *args[MAX_CMD_ARGS];
 
-    new_job->id = job_id + 1; // Increment the job ID
-    new_job->pid = pid;
-
-    size_t len = strlen(command);
-    new_job->command = (char*) malloc(sizeof(char) * len);
-    memcpy(new_job->command, command, len);
-
-    len = strlen(state);
-    new_job->state = (char*) malloc(sizeof(char) * len);
-    memcpy(new_job->state, state, len);
-
-    new_job->next = NULL;
-
-    // Insert the new job into the list in sorted order based on job id
-    if (head == NULL || new_job->id < head->id) {
-        new_job->next = head;
-        head = new_job;
-    } else {
-        job* current = head;
-        while (current->next != NULL && new_job->id > current->next->id) {
-            current = current->next;
-        }
-        new_job->next = current->next;
-        current->next = new_job;
-    }
-    printf("[%d] %d\n", new_job->id, new_job->pid);
-    job_id++; // Increment the global job_id
-}
 
 void SIGINT_handler(int signum) {
     if (pid > 0) {
