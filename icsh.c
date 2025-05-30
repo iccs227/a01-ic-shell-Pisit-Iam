@@ -128,8 +128,42 @@ void exec_com(char *command, char **args) {
     }
 
     if (pid) {
-        waitpid(pid, &status, WUNTRACED);
-        exit_status = WEXITSTATUS(status);
+        if (bg_job) {
+            add_new_job(command,"r");
+            // job* current = head;
+            bg_job = 0;
+            
+            memset(buffer, 0, sizeof(buffer));
+        }
+        else{
+            signal(SIGTSTP, SIGTSTP_handler);
+
+            waitpid(pid, &status, WUNTRACED);
+
+            if (WIFSTOPPED(status)) {
+
+                job* current = head;
+
+                if (current == NULL)
+                {
+                    add_new_job(command,"s");
+                    job * current = head;
+                    printf("\n[%d] Stopped\t\t%s\n", current->id, current->command);
+                }
+                
+                while (current != NULL) {
+                    if (current->pid == pid) {
+                        kill(pid, SIGTSTP);
+                        current->state = "s";
+                        printf("\n[%d] Stopped\t\t%s\n", current->id, current->command);
+                    }
+                    current = current->next;
+                }
+            } 
+            else {
+                exit_status = WEXITSTATUS(status);
+            }
+        }
     }
 }
 
@@ -240,6 +274,10 @@ void command(char* buffer) {
         else {
             printf("Missing exit command\n");
         }
+    }
+    else if (!strncmp(buffer, "echo $?", 7)) {
+            printf("%d\n", exit_status);
+            strcpy(last_command, buffer);
     }
     else if (!strncmp(buffer, "sleep", 5)) {
         int i=0;
